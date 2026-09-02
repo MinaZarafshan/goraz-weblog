@@ -13,6 +13,7 @@ import (
 var ErrUserNotFound = errors.New("user not found")
 var ErrInvalidPassword = errors.New("invalid password")
 var ErrUsernameExists = errors.New("username already exists")
+var ErrEmptyUserOrPass = errors.New("username and password cannot be empty")
 
 type AuthService struct {
 	userRepo *repo.UserRepository
@@ -26,7 +27,7 @@ func NewAuthService(userRepo *repo.UserRepository) *AuthService {
 
 func (s *AuthService) SignUp(username string, pass string) (model.User, error) {
 	if username == "" || pass == "" {
-		return model.User{}, errors.New("username and password cannot be empty")
+		return model.User{}, ErrEmptyUserOrPass
 	}
 	_, err := s.userRepo.GetUserByUsername(username)
 
@@ -52,7 +53,7 @@ func (s *AuthService) SignUp(username string, pass string) (model.User, error) {
 }
 func (s *AuthService) Login(username string, pass string) (model.User, error) {
 	if username == "" || pass == "" {
-		return model.User{}, errors.New("username and password cannot be empty")
+		return model.User{}, ErrEmptyUserOrPass
 	}
 	user, err := s.userRepo.GetUserByUsername(username)
 	if err != nil {
@@ -67,3 +68,16 @@ func (s *AuthService) Login(username string, pass string) (model.User, error) {
 	}
 	return user, nil
 }
+func (s *AuthService) GetUserByID(userID int) (model.User, error) {
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.User{}, ErrUserNotFound
+		}
+
+		return model.User{}, err
+	}
+
+	return user, nil
+}
+
