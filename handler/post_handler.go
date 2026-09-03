@@ -92,10 +92,10 @@ func (h *PostHandler) GetVisiblePosts(c *echo.Context) error {
 	}
 	posts, err := h.postService.GetVisiblePosts(userID)
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidUserID){
-			return c.JSON(http.StatusInternalServerError, ErrorResponse{
-				Error: err.Error(),
-				Code:  "INVALID_PRIVACY",
+		if errors.Is(err, service.ErrInvalidUserID) {
+			return c.JSON(http.StatusUnauthorized, ErrorResponse{
+				Error: "unauthorized",
+				Code:  "UNAUTHORIZED",
 			})
 		}
 		
@@ -159,16 +159,45 @@ func (h *PostHandler) DeletePost(c *echo.Context) error {
 			Code:  "UNAUTHORIZED",
 		})
 	}
-		postID, err := strconv.Atoi(c.Param("id"))
+
+	postID, err := strconv.Atoi(c.Param("id"))
 	if err != nil || postID <= 0 {
 		return c.JSON(http.StatusBadRequest, ErrorResponse{
 			Error: "invalid post id",
 			Code:  "INVALID_POST_ID",
 		})
 	}
+
 	err = h.postService.DeletePost(postID, userID)
-	if err != nil{
-		 
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return c.JSON(http.StatusNotFound, ErrorResponse{
+				Error: "post not found",
+				Code:  "POST_NOT_FOUND",
+			})
+		}
+
+		if errors.Is(err, service.ErrInvalidUserID) {
+			return c.JSON(http.StatusUnauthorized, ErrorResponse{
+				Error: "unauthorized",
+				Code:  "UNAUTHORIZED",
+			})
+		}
+
+		if errors.Is(err, service.ErrNotPostOwner) {
+			return c.JSON(http.StatusForbidden, ErrorResponse{
+				Error: "you are not allowed to delete this post",
+				Code:  "NOT_POST_OWNER",
+			})
+		}
+
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error: "internal server error",
+			Code:  "INTERNAL_ERROR",
+		})
 	}
 
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "post deleted successfully",
+	})
 }
