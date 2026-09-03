@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"weblog/middleware"
 
 	"github.com/gorilla/sessions"
 )
@@ -59,11 +60,18 @@ func main() {
 	userRepo := repo.NewUserRepository(db)
 	userService := service.NewAuthService(userRepo)
 	authHandler := handler.NewAuthHandler(userService, store)
+	postRepo := repo.NewPostRepository(db)
+	postService := service.NewPostService(postRepo)
+	postHandler := handler.NewPostHandler(postService)
 	e := echo.New()
 	e.POST("/auth/login", authHandler.Login)
 	e.POST("/auth/signup", authHandler.SignUp)
 	e.GET("/auth/me", authHandler.Me)
 	e.POST("/auth/logout", authHandler.Logout)
+	e.POST("/posts", postHandler.CreatePost, middleware.AuthMiddleware(store))
+	e.GET("/posts", postHandler.GetVisiblePosts, middleware.AuthMiddleware(store))
+	e.GET("/posts/:id", postHandler.GetPostByID, middleware.AuthMiddleware(store))
+	e.DELETE("/posts/:id", postHandler.DeletePost, middleware.AuthMiddleware(store))
 	if err := e.Start(":8080"); err != nil {
 		e.Logger.Error("server stopped", "error", err)
 	}
