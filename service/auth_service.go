@@ -80,4 +80,3 @@ func (s *AuthService) GetUserByID(userID int) (model.User, error) {
 
 	return user, nil
 }
-
