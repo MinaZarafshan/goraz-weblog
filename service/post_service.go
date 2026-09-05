@@ -9,17 +9,29 @@ import (
 )
 
 var (
-	ErrInvalidUserID    = errors.New("invalid user id")
-	ErrEmptyTitle       = errors.New("title cannot be empty")
-	ErrEmptyContent     = errors.New("content cannot be empty")
-	ErrInvalidPrivacy   = errors.New("privacy must be public or private")
-	ErrPostAccessDenied = errors.New("you do not have access to this post")
-	ErrNotPostOwner = errors.New("only the post owner can delete this post")
+	ErrInvalidUserID        = errors.New("invalid user id")
+	ErrEmptyTitle           = errors.New("title cannot be empty")
+	ErrEmptyContent         = errors.New("content cannot be empty")
+	ErrInvalidPrivacy       = errors.New("privacy must be public or private")
+	ErrPostAccessDenied     = errors.New("you do not have access to this post")
+	ErrNotPostOwner         = errors.New("only the post owner can delete this post")
+	ErrInvalidPage          = errors.New("page must be greater than zero")
+	ErrInvalidLimit         = errors.New("limit must be between 1 and 10")
+	ErrInvalidPrivacyFilter = errors.New("privacy must be public or private")
+	ErrInvalidSort          = errors.New("sort must be newest or oldest")
 )
 
 type PostService struct {
 	postRepo *repo.PostRepository
 }
+type PostListResult struct {
+	Posts      []model.Post `json:"posts"`
+	Page       int          `json:"page"`
+	Limit      int          `json:"limit"`
+	Total      int          `json:"total"`
+	TotalPages int          `json:"total_pages"`
+}
+
 func NewPostService(postRepo *repo.PostRepository) *PostService {
 	return &PostService{
 		postRepo: postRepo,
@@ -104,17 +116,77 @@ func (s *PostService) GetPostByID(
 	return model.Post{}, ErrPostAccessDenied
 }
 
-func (s *PostService) GetVisiblePosts(userID int) ([]model.Post, error) {
+func (s *PostService) GetVisiblePosts(
+	userID int,
+	page int,
+	limit int,
+	search string,
+	privacy string,
+	sort string,
+) (PostListResult, error) {
+
 	if userID <= 0 {
-		return []model.Post{}, ErrInvalidUserID
+		return PostListResult{}, ErrInvalidUserID
 	}
 
-	posts, err := s.postRepo.GetVisiblePosts(userID)
+	if page <= 0 {
+		return PostListResult{}, ErrInvalidPage
+	}
+
+	if limit <= 0 || limit > 10 {
+		return PostListResult{}, ErrInvalidLimit
+	}
+
+	search = strings.TrimSpace(search)
+	privacy = strings.TrimSpace(privacy)
+	sort = strings.TrimSpace(sort)
+
+	if sort == "" {
+		sort = "newest"
+	}
+
+	if sort != "newest" && sort != "oldest" {
+		return PostListResult{}, ErrInvalidSort
+	}
+
+	if privacy != "" && privacy != "public" && privacy != "private" {
+		return PostListResult{}, ErrInvalidPrivacyFilter
+	}
+
+	offset := (page - 1) * limit
+
+	posts, err := s.postRepo.GetVisiblePosts(
+		userID,
+		limit,
+		offset,
+		search,
+		privacy,
+		sort,
+	)
 	if err != nil {
-		return []model.Post{}, err
+		return PostListResult{}, err
 	}
 
-	return posts, nil
+	total, err := s.postRepo.CountVisiblePosts(
+		userID,
+		search,
+		privacy,
+	)
+	if err != nil {
+		return PostListResult{}, err
+	}
+
+	totalPages := (total + limit - 1) / limit
+
+	result := PostListResult{
+		Posts:      posts,
+		Page:       page,
+		Limit:      limit,
+		Total:      total,
+		TotalPages: totalPages,
+	}
+
+	return result, nil
 }
 
 func (s *PostService) DeletePost(postID int, userID int) error {
