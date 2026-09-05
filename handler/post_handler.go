@@ -7,6 +7,7 @@ import (
 
 	"database/sql"
 	"strconv"
+
 	"github.com/labstack/echo/v5"
 )
 
@@ -90,7 +91,49 @@ func (h *PostHandler) GetVisiblePosts(c *echo.Context) error {
 			Code:  "UNAUTHORIZED",
 		})
 	}
-	posts, err := h.postService.GetVisiblePosts(userID)
+
+	page := 1
+	limit := 10
+
+	pageStr := c.QueryParam("page")
+	limitStr := c.QueryParam("limit")
+	search := c.QueryParam("search")
+	privacy := c.QueryParam("privacy")
+	sort := c.QueryParam("sort")
+
+	if pageStr != "" {
+		value, err := strconv.Atoi(pageStr)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error: "page must be a number",
+				Code:  "INVALID_PAGE",
+			})
+		}
+
+		page = value
+	}
+
+	if limitStr != "" {
+		value, err := strconv.Atoi(limitStr)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error: "limit must be a number",
+				Code:  "INVALID_LIMIT",
+			})
+		}
+
+		limit = value
+	}
+
+	result, err := h.postService.GetVisiblePosts(
+		userID,
+		page,
+		limit,
+		search,
+		privacy,
+		sort,
+	)
+
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidUserID) {
 			return c.JSON(http.StatusUnauthorized, ErrorResponse{
@@ -98,15 +141,42 @@ func (h *PostHandler) GetVisiblePosts(c *echo.Context) error {
 				Code:  "UNAUTHORIZED",
 			})
 		}
-		
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-				Error: "internal server error",
-				Code:  "INTERNAL_ERROR",
-		})
-		
-	}
-	return c.JSON(http.StatusOK, posts)
 
+		if errors.Is(err, service.ErrInvalidPage) {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error: err.Error(),
+				Code:  "INVALID_PAGE",
+			})
+		}
+
+		if errors.Is(err, service.ErrInvalidLimit) {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error: err.Error(),
+				Code:  "INVALID_LIMIT",
+			})
+		}
+
+		if errors.Is(err, service.ErrInvalidPrivacyFilter) {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error: err.Error(),
+				Code:  "INVALID_PRIVACY_FILTER",
+			})
+		}
+
+		if errors.Is(err, service.ErrInvalidSort) {
+			return c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error: err.Error(),
+				Code:  "INVALID_SORT",
+			})
+		}
+
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error: "internal server error",
+			Code:  "INTERNAL_ERROR",
+		})
+	}
+
+	return c.JSON(http.StatusOK, result)
 }
 func (h *PostHandler) GetPostByID(c *echo.Context) error {
 	userID, ok := c.Get("user_id").(int)
