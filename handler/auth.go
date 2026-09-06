@@ -3,9 +3,9 @@ package handler
 import (
 	"errors"
 	"net/http"
-			"weblog/service"
 
 	// "weblog/model"
+	"weblog/service"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v5"
@@ -143,8 +143,7 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 	})
 }
 
-
-func (h *AuthHandler)Logout(c *echo.Context)error{
+func (h *AuthHandler) Logout(c *echo.Context) error {
 	session, err := h.store.Get(c.Request(), "auth-session")
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -153,7 +152,7 @@ func (h *AuthHandler)Logout(c *echo.Context)error{
 		})
 	}
 	session.Options.MaxAge = -1
-	if err := session.Save(c.Request(), c.Response()); err != nil{
+	if err := session.Save(c.Request(), c.Response()); err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error: "internal server error",
 			Code:  "INTERNAL_ERROR",

@@ -48,3 +48,25 @@ func (r *PostShareRepo) GetSharedUsers(postID int) ([]SharedUser, error) {
 	}
 	return users, nil
 }
+
+func (r *PostShareRepo) UnsharePost(postID int, userID int) error {
+	result, err := r.db.Exec(`
+		DELETE FROM post_shares
+		WHERE post_id = $1 AND user_id = $2
+	`, postID, userID)
+
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
