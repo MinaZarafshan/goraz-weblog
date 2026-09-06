@@ -63,6 +63,9 @@ func main() {
 	postRepo := repo.NewPostRepository(db)
 	postService := service.NewPostService(postRepo)
 	postHandler := handler.NewPostHandler(postService)
+	postShareRepo := repo.NewPostShareRepo(db)
+	postShareService := service.NewPostShareService(userRepo, postRepo, postShareRepo)
+	postShareHandler := handler.NewPostShareHandler(postShareService)
 	e := echo.New()
 	e.POST("/auth/login", authHandler.Login)
 	e.POST("/auth/signup", authHandler.SignUp)
@@ -72,6 +75,9 @@ func main() {
 	e.GET("/posts", postHandler.GetVisiblePosts, middleware.AuthMiddleware(store))
 	e.GET("/posts/:id", postHandler.GetPostByID, middleware.AuthMiddleware(store))
 	e.DELETE("/posts/:id", postHandler.DeletePost, middleware.AuthMiddleware(store))
+	e.POST("/posts/:id/shares", postShareHandler.SharePost, middleware.AuthMiddleware(store))
+	e.GET("/posts/:id/shares", postShareHandler.GetSharedUsers, middleware.AuthMiddleware(store))
+	e.DELETE("/posts/:id/shares/:userID", postShareHandler.UnsharePost, middleware.AuthMiddleware(store))
 	if err := e.Start(":8080"); err != nil {
 		e.Logger.Error("server stopped", "error", err)
 	}
