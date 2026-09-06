@@ -35,9 +35,9 @@ func (r *CommentRepo) CreateComment(
 	var comment model.Comment
 
 	err := r.db.QueryRow(`
-		INSERT INTO comments (post_id, user_id, text)
+		INSERT INTO comments (post_id, user_id, content)
 		VALUES ($1, $2, $3)
-		RETURNING id, post_id, user_id, text, created_at
+		RETURNING id, post_id, user_id, content, created_at
 	`,
 		postID,
 		userID,
@@ -67,7 +67,7 @@ func (r *CommentRepo) GetCommentsByPostID(
 			comments.post_id,
 			comments.user_id,
 			users.username,
-			comments.text,
+			comments.content,
 			comments.created_at
 		FROM comments
 		JOIN users ON users.id = comments.user_id
