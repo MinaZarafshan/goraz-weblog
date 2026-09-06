@@ -189,28 +189,32 @@ func (s *PostService) GetVisiblePosts(
 	return result, nil
 }
 
-func (s *PostService) DeletePost(postID int, userID int) error {
-	if postID <= 0 {
-		return sql.ErrNoRows
-	}
+func (s *PostService) DeletePost(
+	postID int,
+	userID int,
+) (string, error) {
 
 	if userID <= 0 {
-		return ErrInvalidUserID
+		return "", ErrInvalidUserID
+	}
+
+	if postID <= 0 {
+		return "", sql.ErrNoRows
 	}
 
 	post, err := s.postRepo.GetPostByID(postID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	if post.AuthorID != userID {
-		return ErrNotPostOwner
+		return "", ErrNotPostOwner
 	}
 
 	err = s.postRepo.DeletePost(postID, userID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return post.ImagePath, nil
 }

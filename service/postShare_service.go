@@ -101,7 +101,6 @@ func (s *PostShareService) SharePost(
 	return nil
 }
 
-
 func (s *PostShareService) GetSharedUsers(
 	currentUserID int,
 	postID int,

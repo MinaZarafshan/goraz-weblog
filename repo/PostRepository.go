@@ -82,7 +82,7 @@ func (r *PostRepository) GetVisiblePosts(
 	OFFSET $3
 `
 
-	rows, err := r.db.Query(query,userID,limit,offset,search,privacy)
+	rows, err := r.db.Query(query, userID, limit, offset, search, privacy)
 	if err != nil {
 		return []model.Post{}, err
 	}
