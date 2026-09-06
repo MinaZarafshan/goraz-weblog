@@ -139,7 +139,6 @@ func (h *PostShareHandler) GetSharedUsers(c *echo.Context) error {
 	return c.JSON(http.StatusOK, users)
 }
 
-
 func (h *PostShareHandler) UnsharePost(c *echo.Context) error {
 	currentUserID, ok := c.Get("user_id").(int)
 	if !ok {

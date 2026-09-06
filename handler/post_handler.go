@@ -1,12 +1,14 @@
 package handler
 
 import (
-	"errors"
-	"net/http"
-	"weblog/service"
-
 	"database/sql"
+	"errors"
+	"log"
+	"net/http"
+	"os"
 	"strconv"
+	"strings"
+	"weblog/service"
 
 	"github.com/labstack/echo/v5"
 )
@@ -35,24 +37,85 @@ func (h *PostHandler) CreatePost(c *echo.Context) error {
 		})
 	}
 
-	req := CreatePostRequest{}
+	title := c.FormValue("title")
+	content := c.FormValue("content")
+	privacy := c.FormValue("privacy")
 
-	if err := c.Bind(&req); err != nil {
+	imagePath := ""
+	savedFilePath := ""
+
+	file, err := c.FormFile("image")
+
+	if err != nil && !errors.Is(err, http.ErrMissingFile) {
 		return c.JSON(http.StatusBadRequest, ErrorResponse{
-			Error: "invalid request body",
-			Code:  "BAD_REQUEST",
+			Error: "invalid image upload",
+			Code:  "INVALID_IMAGE_UPLOAD",
 		})
+	}
+
+	if err == nil {
+		imagePath, savedFilePath, err = saveUploadedImage(file)
+
+		if err != nil {
+			switch err {
+			case ErrImageTooLarge:
+				return c.JSON(http.StatusBadRequest, ErrorResponse{
+					Error: err.Error(),
+					Code:  "IMAGE_TOO_LARGE",
+				})
+
+			case ErrEmptyImage:
+				return c.JSON(http.StatusBadRequest, ErrorResponse{
+					Error: err.Error(),
+					Code:  "EMPTY_IMAGE",
+				})
+
+			case ErrInvalidImageType:
+				return c.JSON(http.StatusBadRequest, ErrorResponse{
+					Error: err.Error(),
+					Code:  "INVALID_IMAGE_TYPE",
+				})
+
+			case ErrImageOpen:
+				return c.JSON(http.StatusInternalServerError, ErrorResponse{
+					Error: err.Error(),
+					Code:  "IMAGE_OPEN_ERROR",
+				})
+
+			case ErrImageRead:
+				return c.JSON(http.StatusInternalServerError, ErrorResponse{
+					Error: err.Error(),
+					Code:  "IMAGE_READ_ERROR",
+				})
+
+			case ErrImageSeek:
+				return c.JSON(http.StatusInternalServerError, ErrorResponse{
+					Error: err.Error(),
+					Code:  "IMAGE_SEEK_ERROR",
+				})
+
+			default:
+				return c.JSON(http.StatusInternalServerError, ErrorResponse{
+					Error: "failed to save image",
+					Code:  "IMAGE_SAVE_ERROR",
+				})
+			}
+		}
 	}
 
 	post, err := h.postService.CreatePost(
 		userID,
-		req.Title,
-		req.Content,
-		"",
-		req.Privacy,
+		title,
+		content,
+		imagePath,
+		privacy,
 	)
 
 	if err != nil {
+		if savedFilePath != "" {
+			os.Remove(savedFilePath)
+		}
+
 		switch err {
 		case service.ErrEmptyTitle:
 			return c.JSON(http.StatusBadRequest, ErrorResponse{
@@ -82,7 +145,6 @@ func (h *PostHandler) CreatePost(c *echo.Context) error {
 
 	return c.JSON(http.StatusCreated, post)
 }
-
 func (h *PostHandler) GetVisiblePosts(c *echo.Context) error {
 	userID, ok := c.Get("user_id").(int)
 	if !ok || userID <= 0 {
@@ -238,7 +300,8 @@ func (h *PostHandler) DeletePost(c *echo.Context) error {
 		})
 	}
 
-	err = h.postService.DeletePost(postID, userID)
+	imagePath, err := h.postService.DeletePost(postID, userID)
+
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return c.JSON(http.StatusNotFound, ErrorResponse{
@@ -265,6 +328,16 @@ func (h *PostHandler) DeletePost(c *echo.Context) error {
 			Error: "internal server error",
 			Code:  "INTERNAL_ERROR",
 		})
+	}
+
+	if imagePath != "" {
+		filePath := strings.TrimPrefix(imagePath, "/")
+
+		err := os.Remove(filePath)
+
+		if err != nil && !os.IsNotExist(err) {
+			log.Printf("failed to delete post image: %v", err)
+		}
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{
