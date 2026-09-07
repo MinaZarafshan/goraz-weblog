@@ -6,7 +6,7 @@ import (
 
 	// "weblog/model"
 	"weblog/service"
-
+	"log"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v5"
 )
@@ -95,12 +95,14 @@ func (h *AuthHandler) SignUp(c *echo.Context) error {
 
 func (h *AuthHandler) Login(c *echo.Context) error {
 	var req AuthRequest
+
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, ErrorResponse{
 			Error: "invalid request",
 			Code:  "BAD_REQUEST",
 		})
 	}
+
 	user, err := h.authService.Login(req.Username, req.Password)
 	if err != nil {
 		if errors.Is(err, service.ErrUserNotFound) ||
@@ -111,32 +113,43 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 				Code:  "INVALID_CREDENTIALS",
 			})
 		}
+
 		if errors.Is(err, service.ErrEmptyUserOrPass) {
 			return c.JSON(http.StatusBadRequest, ErrorResponse{
 				Error: "username and password cannot be empty",
 				Code:  "EMPTY_CREDENTIALS",
 			})
 		}
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error: "Internal Server Error",
-			Code:  "INTERNAL_ERROR",
-		})
-	}
-	session, err := h.store.Get(c.Request(), "auth-session")
 
+		log.Printf("LOGIN: auth service error: %v", err)
+
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Error: "internal server error",
+			Code:  "INTERNAL_ERROR",
+		})
+	}
+
+	session, err := h.store.Get(c.Request(), "auth-session")
 	if err != nil {
+		log.Printf("LOGIN: session get error: %v", err)
+
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error: "internal server error",
 			Code:  "INTERNAL_ERROR",
 		})
 	}
+
 	session.Values["user_id"] = user.ID
+
 	if err := session.Save(c.Request(), c.Response()); err != nil {
+		log.Printf("LOGIN: session save error: %v", err)
+
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error: "internal server error",
 			Code:  "INTERNAL_ERROR",
 		})
 	}
+
 	return c.JSON(http.StatusOK, UserResponse{
 		ID:       user.ID,
 		Username: user.Username,

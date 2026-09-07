@@ -17,6 +17,7 @@ import (
 	"weblog/middleware"
 
 	"github.com/gorilla/sessions"
+	echomiddleware "github.com/labstack/echo/v5/middleware"
 )
 
 func main() {
@@ -70,6 +71,30 @@ func main() {
 	commentService := service.NewCommentService(commentRepo, postService)
 	commentHandler := handler.NewCommentHandler(commentService)
 	e := echo.New()
+
+	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
+		AllowOrigins: []string{
+			"http://localhost:5173",
+		},
+
+		AllowMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+
+		AllowHeaders: []string{
+			echo.HeaderOrigin,
+			echo.HeaderContentType,
+			echo.HeaderAccept,
+			echo.HeaderAuthorization,
+		},
+
+		AllowCredentials: true,
+	}))
 	e.Static("/uploads", "uploads")
 	e.POST("/auth/login", authHandler.Login)
 	e.POST("/auth/signup", authHandler.SignUp)
