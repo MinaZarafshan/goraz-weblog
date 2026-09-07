@@ -2,11 +2,12 @@ package handler
 
 import (
 	"errors"
+	"log"
 	"net/http"
 
-	// "weblog/model"
 	"weblog/service"
-	"log"
+
+	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo/v5"
 )
@@ -15,6 +16,7 @@ type AuthHandler struct {
 	authService *service.AuthService
 	store       *sessions.CookieStore
 }
+
 type AuthRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -30,12 +32,23 @@ type UserResponse struct {
 	Username string `json:"username"`
 }
 
-func NewAuthHandler(s *service.AuthService, store *sessions.CookieStore) *AuthHandler {
+
+func isSessionDecodeError(err error) bool {
+	var cookieErr securecookie.Error
+
+	return errors.As(err, &cookieErr) && cookieErr.IsDecode()
+}
+
+func NewAuthHandler(
+	s *service.AuthService,
+	store *sessions.CookieStore,
+) *AuthHandler {
 	return &AuthHandler{
 		authService: s,
 		store:       store,
 	}
 }
+
 
 func (h *AuthHandler) SignUp(c *echo.Context) error {
 	var req AuthRequest
@@ -49,7 +62,6 @@ func (h *AuthHandler) SignUp(c *echo.Context) error {
 
 	user, err := h.authService.SignUp(req.Username, req.Password)
 	if err != nil {
-
 		if errors.Is(err, service.ErrEmptyUserOrPass) {
 			return c.JSON(http.StatusBadRequest, ErrorResponse{
 				Error: "username and password cannot be empty",
@@ -64,6 +76,8 @@ func (h *AuthHandler) SignUp(c *echo.Context) error {
 			})
 		}
 
+		log.Printf("SIGNUP: auth service error: %v", err)
+
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error: "internal server error",
 			Code:  "INTERNAL_ERROR",
@@ -72,15 +86,23 @@ func (h *AuthHandler) SignUp(c *echo.Context) error {
 
 	session, err := h.store.Get(c.Request(), "auth-session")
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error: "internal server error",
-			Code:  "INTERNAL_ERROR",
-		})
+		if !isSessionDecodeError(err) {
+			log.Printf("SIGNUP: session get error: %v", err)
+
+			return c.JSON(http.StatusInternalServerError, ErrorResponse{
+				Error: "internal server error",
+				Code:  "INTERNAL_ERROR",
+			})
+		}
+
+		log.Printf("SIGNUP: invalid old session cookie ignored")
 	}
 
 	session.Values["user_id"] = user.ID
 
 	if err := session.Save(c.Request(), c.Response()); err != nil {
+		log.Printf("SIGNUP: session save error: %v", err)
+
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error: "internal server error",
 			Code:  "INTERNAL_ERROR",
@@ -92,6 +114,8 @@ func (h *AuthHandler) SignUp(c *echo.Context) error {
 		Username: user.Username,
 	})
 }
+
+
 
 func (h *AuthHandler) Login(c *echo.Context) error {
 	var req AuthRequest
@@ -131,12 +155,17 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 
 	session, err := h.store.Get(c.Request(), "auth-session")
 	if err != nil {
-		log.Printf("LOGIN: session get error: %v", err)
 
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error: "internal server error",
-			Code:  "INTERNAL_ERROR",
-		})
+		if !isSessionDecodeError(err) {
+			log.Printf("LOGIN: session get error: %v", err)
+
+			return c.JSON(http.StatusInternalServerError, ErrorResponse{
+				Error: "internal server error",
+				Code:  "INTERNAL_ERROR",
+			})
+		}
+
+		log.Printf("LOGIN: invalid old session cookie ignored")
 	}
 
 	session.Values["user_id"] = user.ID
@@ -156,29 +185,56 @@ func (h *AuthHandler) Login(c *echo.Context) error {
 	})
 }
 
+
+
 func (h *AuthHandler) Logout(c *echo.Context) error {
 	session, err := h.store.Get(c.Request(), "auth-session")
+
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, ErrorResponse{
-			Error: "internal server error",
-			Code:  "INTERNAL_ERROR",
-		})
+
+		if !isSessionDecodeError(err) {
+			log.Printf("LOGOUT: session get error: %v", err)
+
+			return c.JSON(http.StatusInternalServerError, ErrorResponse{
+				Error: "internal server error",
+				Code:  "INTERNAL_ERROR",
+			})
+		}
+
+		log.Printf("LOGOUT: invalid session cookie will be cleared")
 	}
+
 	session.Options.MaxAge = -1
+
 	if err := session.Save(c.Request(), c.Response()); err != nil {
+		log.Printf("LOGOUT: session save error: %v", err)
+
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error: "internal server error",
 			Code:  "INTERNAL_ERROR",
 		})
 	}
+
 	return c.JSON(http.StatusOK, map[string]string{
 		"message": "logout successful",
 	})
 }
 
+
 func (h *AuthHandler) Me(c *echo.Context) error {
 	session, err := h.store.Get(c.Request(), "auth-session")
+
 	if err != nil {
+
+		if isSessionDecodeError(err) {
+			return c.JSON(http.StatusUnauthorized, ErrorResponse{
+				Error: "unauthorized",
+				Code:  "UNAUTHORIZED",
+			})
+		}
+
+		log.Printf("ME: session get error: %v", err)
+
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error: "internal server error",
 			Code:  "INTERNAL_ERROR",
@@ -210,6 +266,8 @@ func (h *AuthHandler) Me(c *echo.Context) error {
 			})
 		}
 
+		log.Printf("ME: get user error: %v", err)
+
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
 			Error: "internal server error",
 			Code:  "INTERNAL_ERROR",
@@ -220,5 +278,4 @@ func (h *AuthHandler) Me(c *echo.Context) error {
 		ID:       user.ID,
 		Username: user.Username,
 	})
-
 }

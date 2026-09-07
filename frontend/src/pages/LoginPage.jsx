@@ -1,44 +1,59 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
 import Navbar from '../components/Navbar.jsx'
 import heroForest from '../assets/hero-forest.png'
 import '../App.css'
 
 function LoginPage() {
+  const navigate = useNavigate()
+
   const [username, setUsername] = useState('')
-const [password, setPassword] = useState('')
-const [error, setError] = useState('')
-async function handleSubmit(event) {
-  event.preventDefault()
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
-  if (username.trim() === '') {
-    setError('Username is required')
-    return
+  async function handleSubmit(event) {
+    event.preventDefault()
+
+    if (username.trim() === '') {
+      setError('Username is required')
+      return
+    }
+
+    if (password === '') {
+      setError('Password is required')
+      return
+    }
+
+    setError('')
+
+    try {
+      const response = await fetch('http://localhost:8080/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          username: username,
+          password: password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Login failed')
+        return
+      }
+
+      navigate('/home')
+    } catch (error) {
+      console.error('Login request failed:', error)
+      setError('Could not connect to the server')
+    }
   }
 
-  if (password === '') {
-    setError('Password is required')
-    return
-  }
-
-  setError('')
-
-  const response = await fetch('http://localhost:8080/auth/login', {
-    method: 'POST',
-
-    headers: {
-      'Content-Type': 'application/json',
-    },
-
-    credentials: 'include',
-
-    body: JSON.stringify({
-      username: username,
-      password: password,
-    }),
-  })
-
-  console.log('Status:', response.status)
-}
   return (
     <>
       <Navbar />
@@ -91,11 +106,12 @@ async function handleSubmit(event) {
                   }
                 />
               </div>
-                            {error && (
+
+              {error && (
                 <p className="form-error">
-                    {error}
+                  {error}
                 </p>
-                )}
+              )}
 
               <button
                 type="submit"
