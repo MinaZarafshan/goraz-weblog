@@ -19,6 +19,9 @@ function HomePage() {
   const [totalPosts, setTotalPosts] = useState(0)
   const [limit, setLimit] = useState(3)
 
+  const [isCreateModalOpen, setIsCreateModalOpen] =
+    useState(false)
+
   async function loadPosts(
     searchValue = '',
     privacyValue = '',
@@ -191,6 +194,8 @@ function HomePage() {
       setDraftPrivacy('public')
       setDraftImage(null)
 
+      setIsCreateModalOpen(false)
+
       await loadPosts(
         search,
         privacyFilter,
@@ -255,173 +260,339 @@ function HomePage() {
   }, [])
 
   return (
-    <main>
-      <h1>Home</h1>
+    <main className="home-page">
+      <div className="home-shell">
 
-      {user && (
-        <p>
-          Welcome {user.username}
-        </p>
-      )}
+        <header className="home-navbar">
+          <Link
+            to="/home"
+            className="home-brand"
+          >
+            <span className="brand-mark">
+              MW
+            </span>
 
-      <div>
-        <input
-          type="text"
-          placeholder="Search posts..."
-          value={search}
-          onChange={(event) =>
-            setSearch(event.target.value)
-          }
-        />
+            <span className="brand-name">
+              MiniWeblog
+            </span>
+          </Link>
 
-        <button onClick={handleSearch}>
-          Search
-        </button>
+          <button
+            className="create-nav-button"
+            onClick={() =>
+              setIsCreateModalOpen(true)
+            }
+          >
+            Create Post
+          </button>
+        </header>
 
-        <button
-          onClick={() =>
-            handlePrivacyFilter('')
-          }
-        >
-          All
-        </button>
+        <div className="home-content">
 
-        <button
-          onClick={() =>
-            handlePrivacyFilter('public')
-          }
-        >
-          Public
-        </button>
+          <section className="home-intro">
+            <h1>Your Feed</h1>
 
-        <button
-          onClick={() =>
-            handlePrivacyFilter('private')
-          }
-        >
-          Private
-        </button>
+            {user && (
+              <p>
+                Welcome,{' '}
+                <strong>
+                  {user.username}
+                </strong>
+              </p>
+            )}
+          </section>
 
-        <button
-          onClick={() =>
-            handleSort('newest')
-          }
-        >
-          Newest
-        </button>
+          <section className="feed-controls">
 
-        <button
-          onClick={() =>
-            handleSort('oldest')
-          }
-        >
-          Oldest
-        </button>
+            <div className="search-row">
+              <input
+                className="search-input"
+                type="text"
+                placeholder="Search posts..."
+                value={search}
+                onChange={(event) =>
+                  setSearch(
+                    event.target.value
+                  )
+                }
+              />
 
-        <select
-          value={limit}
-          onChange={handleLimitChange}
-        >
-          <option value="3">
-            3 per page
-          </option>
+              <button
+                className="search-button"
+                onClick={handleSearch}
+              >
+                Search
+              </button>
+            </div>
 
-          <option value="5">
-            5 per page
-          </option>
+            <div className="filter-row">
 
-          <option value="10">
-            10 per page
-          </option>
-        </select>
-      </div>
+              <div className="filter-group">
+                <span className="filter-label">
+                  Privacy
+                </span>
 
-      <h2>Posts</h2>
+                <button
+                  className={
+                    privacyFilter === ''
+                      ? 'filter-button active'
+                      : 'filter-button'
+                  }
+                  onClick={() =>
+                    handlePrivacyFilter('')
+                  }
+                >
+                  All
+                </button>
 
-      {posts.map((post) => {
-        return (
-          <div key={post.ID}>
-            <Link to={`/weblog/${post.ID}`}>
-              {post.Title}
-            </Link>
+                <button
+                  className={
+                    privacyFilter === 'public'
+                      ? 'filter-button active'
+                      : 'filter-button'
+                  }
+                  onClick={() =>
+                    handlePrivacyFilter(
+                      'public'
+                    )
+                  }
+                >
+                  Public
+                </button>
+
+                <button
+                  className={
+                    privacyFilter === 'private'
+                      ? 'filter-button active'
+                      : 'filter-button'
+                  }
+                  onClick={() =>
+                    handlePrivacyFilter(
+                      'private'
+                    )
+                  }
+                >
+                  Private
+                </button>
+              </div>
+
+              <div className="filter-group">
+                <span className="filter-label">
+                  Sort
+                </span>
+
+                <button
+                  className={
+                    sortOrder === 'newest'
+                      ? 'filter-button active'
+                      : 'filter-button'
+                  }
+                  onClick={() =>
+                    handleSort('newest')
+                  }
+                >
+                  Newest
+                </button>
+
+                <button
+                  className={
+                    sortOrder === 'oldest'
+                      ? 'filter-button active'
+                      : 'filter-button'
+                  }
+                  onClick={() =>
+                    handleSort('oldest')
+                  }
+                >
+                  Oldest
+                </button>
+              </div>
+
+              <select
+                className="limit-select"
+                value={limit}
+                onChange={handleLimitChange}
+              >
+                <option value="3">
+                  3 per page
+                </option>
+
+                <option value="5">
+                  5 per page
+                </option>
+
+                <option value="10">
+                  10 per page
+                </option>
+              </select>
+
+            </div>
+          </section>
+
+          <section className="posts-section">
+
+            <div className="posts-heading">
+              <h2>Posts</h2>
+
+              <span>
+                {totalPosts} posts
+              </span>
+            </div>
+
+            <div className="post-list">
+              {posts.map((post) => {
+                return (
+                  <div
+                    className="post-row"
+                    key={post.ID}
+                  >
+                    <Link
+                      className="post-link"
+                      to={`/weblog/${post.ID}`}
+                    >
+                      {post.Title}
+                    </Link>
+
+                    <span
+                      className={`privacy-badge ${post.Privacy}`}
+                    >
+                      {post.Privacy}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {posts.length === 0 && (
+              <p className="empty-posts">
+                No posts found.
+              </p>
+            )}
+
+          </section>
+
+          <div className="pagination">
+
+            <button
+              onClick={
+                handlePreviousPage
+              }
+              disabled={page <= 1}
+            >
+              Previous
+            </button>
 
             <span>
-              {' '}
-              — {post.Privacy}
+              Page {page} of{' '}
+              {Math.max(
+                totalPages,
+                1
+              )}
             </span>
+
+            <button
+              onClick={
+                handleNextPage
+              }
+              disabled={
+                page >= totalPages
+              }
+            >
+              Next
+            </button>
+
           </div>
-        )
-      })}
 
-      <div>
-        <button
-          onClick={handlePreviousPage}
-          disabled={page <= 1}
-        >
-          Previous
-        </button>
-
-        <span>
-          {' '}
-          Page {page} of {totalPages}{' '}
-        </span>
-
-        <button
-          onClick={handleNextPage}
-          disabled={page >= totalPages}
-        >
-          Next
-        </button>
-
-        <p>
-          Total posts: {totalPosts}
-        </p>
+        </div>
       </div>
 
-      <h2>Create post</h2>
+      {isCreateModalOpen && (
+        <div className="modal-overlay">
 
-      <input
-        type="text"
-        placeholder="Title"
-        value={draftTitle}
-        onChange={(event) =>
-          setDraftTitle(event.target.value)
-        }
-      />
+          <div className="create-modal">
 
-      <textarea
-        placeholder="Write your post..."
-        value={draftContent}
-        onChange={(event) =>
-          setDraftContent(event.target.value)
-        }
-      />
+            <div className="modal-header">
 
-      <select
-        value={draftPrivacy}
-        onChange={(event) =>
-          setDraftPrivacy(event.target.value)
-        }
-      >
-        <option value="public">
-          Public
-        </option>
+              <div>
+                <p>NEW POST</p>
+                <h2>Create a post</h2>
+              </div>
 
-        <option value="private">
-          Private
-        </option>
-      </select>
+              <button
+                className="modal-close"
+                onClick={() =>
+                  setIsCreateModalOpen(
+                    false
+                  )
+                }
+              >
+                ×
+              </button>
 
-      <input
-        type="file"
-        onChange={(event) =>
-          setDraftImage(event.target.files[0])
-        }
-      />
+            </div>
 
-      <button onClick={handleAddPost}>
-        Add post
-      </button>
+            <div className="modal-form">
+
+              <input
+                type="text"
+                placeholder="Title"
+                value={draftTitle}
+                onChange={(event) =>
+                  setDraftTitle(
+                    event.target.value
+                  )
+                }
+              />
+
+              <textarea
+                placeholder="Write your post..."
+                value={draftContent}
+                onChange={(event) =>
+                  setDraftContent(
+                    event.target.value
+                  )
+                }
+              />
+
+              <select
+                value={draftPrivacy}
+                onChange={(event) =>
+                  setDraftPrivacy(
+                    event.target.value
+                  )
+                }
+              >
+                <option value="public">
+                  Public
+                </option>
+
+                <option value="private">
+                  Private
+                </option>
+              </select>
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) =>
+                  setDraftImage(
+                    event.target.files[0]
+                  )
+                }
+              />
+
+              <button
+                className="publish-button"
+                onClick={handleAddPost}
+              >
+                Publish
+              </button>
+
+            </div>
+          </div>
+
+        </div>
+      )}
     </main>
   )
 }
