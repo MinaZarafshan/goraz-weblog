@@ -194,3 +194,146 @@
 .secondary-button:active {
   background: #d9e4dc;
 }
+
+/* ----------  login ---------- */
+.auth-section {
+  min-height: calc(100vh - 75px);
+  padding: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  box-sizing: border-box;
+}
+.auth-card {
+  width: 100%;
+  max-width: 460px;
+
+  padding: 42px;
+
+  background: rgba(253, 252, 248, 0.69);
+  /* backdrop-filter: blur(4px); */
+
+  border-radius: 16px;
+
+  box-shadow: 0 20px 60px rgba(10, 30, 20, 0.2);
+
+  box-sizing: border-box;
+}
+
+.auth-eyebrow {
+  margin: 0 0 12px;
+
+  color: #4f705e;
+
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+}
+
+.auth-card h1 {
+  margin: 0 0 12px;
+
+  color: #18392c;
+
+  font-size: 34px;
+  line-height: 1.15;
+}
+
+.auth-description {
+  margin: 0 0 30px;
+
+  color: #637168;
+
+  font-size: 15px;
+  line-height: 1.5;
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  color: #263c31;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-group input {
+  width: 100%;
+
+  padding: 13px 14px;
+
+  font: inherit;
+  font-size: 15px;
+
+  color: #1c2923;
+  background: rgba(255, 255, 255, 0.8);
+
+  border: 1px solid #c7d0ca;
+  border-radius: 9px;
+
+  box-sizing: border-box;
+}
+.form-group input:focus {
+  outline: none;
+
+  border-color: #315f49;
+
+  box-shadow: 0 0 0 3px rgba(49, 95, 73, 0.12);
+}
+.auth-submit-button {
+  width: 100%;
+
+  padding: 13px 20px;
+
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+
+  color: white;
+  background: #18392c;
+
+  border: 1px solid #18392c;
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.auth-submit-button:hover {
+  background: #24533f;
+}
+
+.auth-submit-button:active {
+  background: #0f281e;
+  transform: translateY(1px);
+}
+.form-error {
+  margin: 0;
+
+  padding: 10px 12px;
+
+  color: #8a2f2f;
+  background: #f8e8e5;
+
+  border: 1px solid #e4c3be;
+  border-radius: 8px;
+
+  font-size: 14px;
+}
