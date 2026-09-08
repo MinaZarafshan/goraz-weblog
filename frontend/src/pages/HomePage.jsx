@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react'
 
 function HomePage() {
-  const user = {
-    id: 1,
-    username: 'mina',
-  }
+  const [user, setUser] = useState(null)
 
   const [posts, setPosts] = useState([])
 
@@ -110,12 +107,38 @@ function HomePage() {
     loadPosts()
   }, [])
 
+
+  useEffect(() => {
+  async function loadUser() {
+    try {
+      const response = await fetch('http://localhost:8080/auth/me', {
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        console.error('Failed to load user:', response.status)
+        return
+      }
+
+      const data = await response.json()
+
+      console.log('USER DATA:', data)
+
+      setUser(data)
+    } catch (error) {
+      console.error('Could not load user:', error)
+    }
+  }
+
+  loadUser()
+}, [])
   return (
     <main>
       <h1>Home</h1>
 
-      <p>Welcome {user.username}</p>
-
+{user && (
+  <p>Welcome {user.username}</p>
+)}
       <h2>Posts</h2>
 
       {posts.map((post) => {
