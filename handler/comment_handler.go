@@ -27,14 +27,14 @@ func NewCommentHandler(service *service.CommentService) *CommentHandler {
 
 func (h *CommentHandler) CreateComment(c *echo.Context) error {
 	userID, ok := c.Get("user_id").(int)
-	if !ok {
+	if !ok || userID <= 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": "UNAUTHORIZED",
 		})
 	}
 
 	postID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || postID <= 0 {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "INVALID_POST_ID",
 		})
@@ -71,6 +71,11 @@ func (h *CommentHandler) CreateComment(c *echo.Context) error {
 				"error": "EMPTY_COMMENT",
 			})
 
+		case errors.Is(err, service.ErrInvalidUserID):
+			return c.JSON(http.StatusUnauthorized, map[string]string{
+				"error": "UNAUTHORIZED",
+			})
+
 		default:
 			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"error": "INTERNAL_SERVER_ERROR",
@@ -83,14 +88,14 @@ func (h *CommentHandler) CreateComment(c *echo.Context) error {
 
 func (h *CommentHandler) GetCommentsByPostID(c *echo.Context) error {
 	userID, ok := c.Get("user_id").(int)
-	if !ok {
+	if !ok || userID <= 0 {
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": "UNAUTHORIZED",
 		})
 	}
 
 	postID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || postID <= 0 {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "INVALID_POST_ID",
 		})
@@ -111,6 +116,11 @@ func (h *CommentHandler) GetCommentsByPostID(c *echo.Context) error {
 		case errors.Is(err, service.ErrPostAccessDenied):
 			return c.JSON(http.StatusForbidden, map[string]string{
 				"error": "POST_ACCESS_DENIED",
+			})
+
+		case errors.Is(err, service.ErrInvalidUserID):
+			return c.JSON(http.StatusUnauthorized, map[string]string{
+				"error": "UNAUTHORIZED",
 			})
 
 		default:

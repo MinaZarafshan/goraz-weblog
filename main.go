@@ -62,7 +62,7 @@ func main() {
 	userService := service.NewAuthService(userRepo)
 	authHandler := handler.NewAuthHandler(userService, store)
 	postRepo := repo.NewPostRepository(db)
-	postService := service.NewPostService(postRepo)
+	postService := service.NewPostService(postRepo, userRepo)
 	postHandler := handler.NewPostHandler(postService)
 	postShareRepo := repo.NewPostShareRepo(db)
 	postShareService := service.NewPostShareService(userRepo, postRepo, postShareRepo)

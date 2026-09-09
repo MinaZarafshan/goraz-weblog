@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import SignupPage from './pages/SignupPage.jsx'
 import HomePage from './pages/HomePage.jsx'
+import PostDetailPage from './pages/PostDetailPage.jsx'
 
 import ProtectedRoute from './components/ProtectedRoute.jsx'
 
@@ -30,6 +31,15 @@ function App() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+        
+      />
+      <Route
+        path="/weblog/:id"
+        element={
+          <ProtectedRoute>
+            <PostDetailPage />
           </ProtectedRoute>
         }
       />

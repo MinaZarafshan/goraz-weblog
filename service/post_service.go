@@ -23,6 +23,7 @@ var (
 
 type PostService struct {
 	postRepo *repo.PostRepository
+	userRepo *repo.UserRepository
 }
 type PostListResult struct {
 	Posts      []model.Post `json:"posts"`
@@ -31,13 +32,20 @@ type PostListResult struct {
 	Total      int          `json:"total"`
 	TotalPages int          `json:"total_pages"`
 }
-
-func NewPostService(postRepo *repo.PostRepository) *PostService {
-	return &PostService{
-		postRepo: postRepo,
-	}
+type PostDetailResult struct {
+	model.Post
+	AuthorUsername string `json:"AuthorUsername"`
 }
 
+func NewPostService(
+	postRepo *repo.PostRepository,
+	userRepo *repo.UserRepository,
+) *PostService {
+	return &PostService{
+		postRepo: postRepo,
+		userRepo: userRepo,
+	}
+}
 func (s *PostService) CreatePost(
 	userID int,
 	title string,
@@ -81,39 +89,60 @@ func (s *PostService) CreatePost(
 func (s *PostService) GetPostByID(
 	postID int,
 	userID int,
-) (model.Post, error) {
+) (PostDetailResult, error) {
 
 	if postID <= 0 {
-		return model.Post{}, sql.ErrNoRows
+		return PostDetailResult{}, sql.ErrNoRows
 	}
 
 	if userID <= 0 {
-		return model.Post{}, ErrInvalidUserID
+		return PostDetailResult{}, ErrInvalidUserID
 	}
 
 	post, err := s.postRepo.GetPostByID(postID)
 	if err != nil {
-		return model.Post{}, err
+		return PostDetailResult{}, err
 	}
 
+	hasAccess := false
+
 	if post.Privacy == "public" {
-		return post, nil
+		hasAccess = true
 	}
 
 	if post.AuthorID == userID {
-		return post, nil
+		hasAccess = true
 	}
 
-	shared, err := s.postRepo.IsPostSharedWithUser(postID, userID)
+	if !hasAccess {
+		shared, err := s.postRepo.IsPostSharedWithUser(
+			postID,
+			userID,
+		)
+		if err != nil {
+			return PostDetailResult{}, err
+		}
+
+		if shared {
+			hasAccess = true
+		}
+	}
+
+	if !hasAccess {
+		return PostDetailResult{}, ErrPostAccessDenied
+	}
+
+	author, err := s.userRepo.GetUserByID(post.AuthorID)
 	if err != nil {
-		return model.Post{}, err
+		return PostDetailResult{}, err
 	}
 
-	if shared {
-		return post, nil
+	result := PostDetailResult{
+		Post:           post,
+		AuthorUsername: author.Username,
 	}
 
-	return model.Post{}, ErrPostAccessDenied
+	return result, nil
 }
 
 func (s *PostService) GetVisiblePosts(

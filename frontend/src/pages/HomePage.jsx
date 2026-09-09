@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 function HomePage() {
+  const navigate = useNavigate()
+
   const [user, setUser] = useState(null)
   const [posts, setPosts] = useState([])
 
@@ -9,6 +11,16 @@ function HomePage() {
   const [draftContent, setDraftContent] = useState('')
   const [draftPrivacy, setDraftPrivacy] = useState('public')
   const [draftImage, setDraftImage] = useState(null)
+
+  const [titleError, setTitleError] = useState('')
+  const [contentError, setContentError] = useState('')
+  const [privacyError, setPrivacyError] = useState('')
+  const [imageError, setImageError] = useState('')
+  const [createError, setCreateError] = useState('')
+  const [logoutError, setLogoutError] = useState('')
+  const [isLogoutModalOpen, setIsLogoutModalOpen] =
+    useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const [search, setSearch] = useState('')
   const [privacyFilter, setPrivacyFilter] = useState('')
@@ -63,8 +75,6 @@ function HomePage() {
       }
 
       const data = await response.json()
-
-      console.log('BACKEND DATA:', data)
 
       setPosts(data.posts)
       setPage(data.page)
@@ -150,12 +160,113 @@ function HomePage() {
     }
   }
 
-  async function handleAddPost() {
-    if (draftTitle.trim() === '') {
+  function handleImageChange(event) {
+    const file = event.target.files[0]
+
+    // The frontend only stores the selected file.
+    // The backend is the source of truth for image validation.
+    setImageError('')
+    setCreateError('')
+    setDraftImage(file || null)
+  }
+
+  async function handleLogout() {
+    if (isLoggingOut) {
       return
     }
 
+    try {
+      setIsLoggingOut(true)
+      setLogoutError('')
+
+      const response = await fetch(
+        'http://localhost:8080/auth/logout',
+        {
+          method: 'POST',
+          credentials: 'include',
+        }
+      )
+
+      if (!response.ok) {
+        let message = 'Failed to log out.'
+
+        try {
+          const data = await response.json()
+
+          message =
+            data.error ||
+            data.Error ||
+            message
+        } catch {
+          // Keep the generic message if the response is not JSON.
+        }
+
+        setLogoutError(message)
+        return
+      }
+
+      setUser(null)
+      setIsLogoutModalOpen(false)
+
+      navigate('/login', {
+        replace: true,
+      })
+    } catch (error) {
+      console.error(
+        'Could not log out:',
+        error
+      )
+
+      setLogoutError(
+        'Could not connect to the server.'
+      )
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
+  function openLogoutModal() {
+    setLogoutError('')
+    setIsLogoutModalOpen(true)
+  }
+
+  function closeLogoutModal() {
+    if (isLoggingOut) {
+      return
+    }
+
+    setLogoutError('')
+    setIsLogoutModalOpen(false)
+  }
+
+  async function handleAddPost() {
+    setTitleError('')
+    setContentError('')
+    setPrivacyError('')
+    setImageError('')
+    setCreateError('')
+
+    let hasFrontendError = false
+
+    if (draftTitle.trim() === '') {
+      setTitleError('Title is required.')
+      hasFrontendError = true
+    }
+
     if (draftContent.trim() === '') {
+      setContentError('Content is required.')
+      hasFrontendError = true
+    }
+
+    if (
+      draftPrivacy !== 'public' &&
+      draftPrivacy !== 'private'
+    ) {
+      setPrivacyError('Privacy must be public or private.')
+      hasFrontendError = true
+    }
+
+    if (hasFrontendError) {
       return
     }
 
@@ -180,10 +291,97 @@ function HomePage() {
       )
 
       if (!response.ok) {
+        let data = {}
+
+        try {
+          data = await response.json()
+        } catch {
+          setCreateError(
+            'The server returned an invalid response.'
+          )
+          return
+        }
+
+        const code =
+          data.code ||
+          data.Code ||
+          ''
+
+        const backendMessage =
+          data.error ||
+          data.Error ||
+          ''
+
         console.error(
-          'Failed to create post:',
-          response.status
+          'CREATE POST ERROR:',
+          {
+            status: response.status,
+            code,
+            backendMessage,
+            data,
+          }
         )
+
+        if (code === 'EMPTY_TITLE') {
+          setTitleError('Title is required.')
+        } else if (code === 'EMPTY_CONTENT') {
+          setContentError('Content is required.')
+        } else if (code === 'INVALID_PRIVACY') {
+          setPrivacyError(
+            'Privacy must be public or private.'
+          )
+        } else if (code === 'INVALID_IMAGE_UPLOAD') {
+          setImageError(
+            'The image upload is invalid.'
+          )
+        } else if (code === 'IMAGE_TOO_LARGE') {
+          setImageError(
+            'Image must be 5 MB or smaller.'
+          )
+        } else if (code === 'EMPTY_IMAGE') {
+          setImageError(
+            'The selected image is empty.'
+          )
+        } else if (code === 'INVALID_IMAGE_TYPE') {
+          setImageError(
+            'Only valid JPEG, PNG, and WEBP images are allowed.'
+          )
+        } else if (code === 'IMAGE_OPEN_ERROR') {
+          setImageError(
+            'The server could not open the uploaded image.'
+          )
+        } else if (code === 'IMAGE_READ_ERROR') {
+          setImageError(
+            'The server could not read the uploaded image.'
+          )
+        } else if (code === 'IMAGE_SEEK_ERROR') {
+          setImageError(
+            'The server could not process the uploaded image.'
+          )
+        } else if (code === 'IMAGE_SAVE_ERROR') {
+          setImageError(
+            'The server could not save the uploaded image.'
+          )
+        } else if (code === 'UNAUTHORIZED') {
+          setCreateError(
+            'Your session has expired. Please log in again.'
+          )
+        } else if (code === 'INTERNAL_ERROR') {
+          setCreateError(
+            'The server could not create the post. Please try again.'
+          )
+        } else if (code.startsWith('IMAGE_')) {
+          setImageError(
+            backendMessage ||
+              'The image could not be processed.'
+          )
+        } else {
+          setCreateError(
+            backendMessage ||
+              'Failed to create post.'
+          )
+        }
+
         return
       }
 
@@ -193,6 +391,12 @@ function HomePage() {
       setDraftContent('')
       setDraftPrivacy('public')
       setDraftImage(null)
+
+      setTitleError('')
+      setContentError('')
+      setPrivacyError('')
+      setImageError('')
+      setCreateError('')
 
       setIsCreateModalOpen(false)
 
@@ -207,6 +411,10 @@ function HomePage() {
       console.error(
         'Could not create post:',
         error
+      )
+
+      setCreateError(
+        'Could not connect to the server.'
       )
     }
   }
@@ -245,8 +453,6 @@ function HomePage() {
 
         const data = await response.json()
 
-        console.log('USER DATA:', data)
-
         setUser(data)
       } catch (error) {
         console.error(
@@ -277,14 +483,28 @@ function HomePage() {
             </span>
           </Link>
 
-          <button
-            className="create-nav-button"
-            onClick={() =>
-              setIsCreateModalOpen(true)
-            }
-          >
-            Create Post
-          </button>
+          <div className="home-nav-actions">
+            <button
+              className="create-nav-button"
+              onClick={() => {
+                setTitleError('')
+                setContentError('')
+                setPrivacyError('')
+                setImageError('')
+                setCreateError('')
+                setIsCreateModalOpen(true)
+              }}
+            >
+              Create Post
+            </button>
+
+            <button
+              className="logout-button"
+              onClick={openLogoutModal}
+            >
+              Logout
+            </button>
+          </div>
         </header>
 
         <div className="home-content">
@@ -472,11 +692,8 @@ function HomePage() {
           </section>
 
           <div className="pagination">
-
             <button
-              onClick={
-                handlePreviousPage
-              }
+              onClick={handlePreviousPage}
               disabled={page <= 1}
             >
               Previous
@@ -484,23 +701,15 @@ function HomePage() {
 
             <span>
               Page {page} of{' '}
-              {Math.max(
-                totalPages,
-                1
-              )}
+              {Math.max(totalPages, 1)}
             </span>
 
             <button
-              onClick={
-                handleNextPage
-              }
-              disabled={
-                page >= totalPages
-              }
+              onClick={handleNextPage}
+              disabled={page >= totalPages}
             >
               Next
             </button>
-
           </div>
 
         </div>
@@ -520,11 +729,14 @@ function HomePage() {
 
               <button
                 className="modal-close"
-                onClick={() =>
-                  setIsCreateModalOpen(
-                    false
-                  )
-                }
+                onClick={() => {
+                  setTitleError('')
+                  setContentError('')
+                  setPrivacyError('')
+                  setImageError('')
+                  setCreateError('')
+                  setIsCreateModalOpen(false)
+                }}
               >
                 ×
               </button>
@@ -537,30 +749,48 @@ function HomePage() {
                 type="text"
                 placeholder="Title"
                 value={draftTitle}
-                onChange={(event) =>
+                onChange={(event) => {
                   setDraftTitle(
                     event.target.value
                   )
-                }
+                  setTitleError('')
+                  setCreateError('')
+                }}
               />
+
+              {titleError && (
+                <p className="form-error">
+                  {titleError}
+                </p>
+              )}
 
               <textarea
                 placeholder="Write your post..."
                 value={draftContent}
-                onChange={(event) =>
+                onChange={(event) => {
                   setDraftContent(
                     event.target.value
                   )
-                }
+                  setContentError('')
+                  setCreateError('')
+                }}
               />
+
+              {contentError && (
+                <p className="form-error">
+                  {contentError}
+                </p>
+              )}
 
               <select
                 value={draftPrivacy}
-                onChange={(event) =>
+                onChange={(event) => {
                   setDraftPrivacy(
                     event.target.value
                   )
-                }
+                  setPrivacyError('')
+                  setCreateError('')
+                }}
               >
                 <option value="public">
                   Public
@@ -571,15 +801,29 @@ function HomePage() {
                 </option>
               </select>
 
+              {privacyError && (
+                <p className="form-error">
+                  {privacyError}
+                </p>
+              )}
+
               <input
                 type="file"
-                accept="image/*"
-                onChange={(event) =>
-                  setDraftImage(
-                    event.target.files[0]
-                  )
-                }
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleImageChange}
               />
+
+              {imageError && (
+                <p className="form-error">
+                  {imageError}
+                </p>
+              )}
+
+              {createError && (
+                <p className="form-error">
+                  {createError}
+                </p>
+              )}
 
               <button
                 className="publish-button"
@@ -593,6 +837,69 @@ function HomePage() {
 
         </div>
       )}
+
+      {isLogoutModalOpen && (
+        <div
+          className="modal-overlay"
+          onClick={closeLogoutModal}
+        >
+          <div
+            className="create-modal confirm-modal"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="modal-header">
+              <div>
+                <p>ACCOUNT</p>
+                <h2>Log out?</h2>
+              </div>
+
+              <button
+                className="modal-close"
+                onClick={closeLogoutModal}
+                disabled={isLoggingOut}
+                aria-label="Close logout confirmation"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="confirm-modal-body">
+              <p>
+                Are you sure you want to log out?
+              </p>
+
+              {logoutError && (
+                <p className="form-error">
+                  {logoutError}
+                </p>
+              )}
+
+              <div className="confirm-modal-actions">
+                <button
+                  className="confirm-cancel-button"
+                  onClick={closeLogoutModal}
+                  disabled={isLoggingOut}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="confirm-primary-button"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                >
+                  {isLoggingOut
+                    ? 'Logging out...'
+                    : 'Logout'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }

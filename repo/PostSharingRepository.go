@@ -8,8 +8,8 @@ type PostShareRepo struct {
 	db *sql.DB
 }
 type SharedUser struct {
-	Username string
-	ID       int
+	ID       int    `json:"id"`
+	Username string `json:"username"`
 }
 
 func NewPostShareRepo(db *sql.DB) *PostShareRepo {
