@@ -18,6 +18,9 @@ function HomePage() {
   const [imageError, setImageError] = useState('')
   const [createError, setCreateError] = useState('')
   const [logoutError, setLogoutError] = useState('')
+  const [isLogoutModalOpen, setIsLogoutModalOpen] =
+    useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const [search, setSearch] = useState('')
   const [privacyFilter, setPrivacyFilter] = useState('')
@@ -168,7 +171,12 @@ function HomePage() {
   }
 
   async function handleLogout() {
+    if (isLoggingOut) {
+      return
+    }
+
     try {
+      setIsLoggingOut(true)
       setLogoutError('')
 
       const response = await fetch(
@@ -198,6 +206,7 @@ function HomePage() {
       }
 
       setUser(null)
+      setIsLogoutModalOpen(false)
 
       navigate('/login', {
         replace: true,
@@ -211,7 +220,23 @@ function HomePage() {
       setLogoutError(
         'Could not connect to the server.'
       )
+    } finally {
+      setIsLoggingOut(false)
     }
+  }
+
+  function openLogoutModal() {
+    setLogoutError('')
+    setIsLogoutModalOpen(true)
+  }
+
+  function closeLogoutModal() {
+    if (isLoggingOut) {
+      return
+    }
+
+    setLogoutError('')
+    setIsLogoutModalOpen(false)
   }
 
   async function handleAddPost() {
@@ -475,18 +500,12 @@ function HomePage() {
 
             <button
               className="logout-button"
-              onClick={handleLogout}
+              onClick={openLogoutModal}
             >
               Logout
             </button>
           </div>
         </header>
-
-        {logoutError && (
-          <p className="logout-error">
-            {logoutError}
-          </p>
-        )}
 
         <div className="home-content">
 
@@ -818,6 +837,69 @@ function HomePage() {
 
         </div>
       )}
+
+      {isLogoutModalOpen && (
+        <div
+          className="modal-overlay"
+          onClick={closeLogoutModal}
+        >
+          <div
+            className="create-modal confirm-modal"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="modal-header">
+              <div>
+                <p>ACCOUNT</p>
+                <h2>Log out?</h2>
+              </div>
+
+              <button
+                className="modal-close"
+                onClick={closeLogoutModal}
+                disabled={isLoggingOut}
+                aria-label="Close logout confirmation"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="confirm-modal-body">
+              <p>
+                Are you sure you want to log out?
+              </p>
+
+              {logoutError && (
+                <p className="form-error">
+                  {logoutError}
+                </p>
+              )}
+
+              <div className="confirm-modal-actions">
+                <button
+                  className="confirm-cancel-button"
+                  onClick={closeLogoutModal}
+                  disabled={isLoggingOut}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  className="confirm-primary-button"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                >
+                  {isLoggingOut
+                    ? 'Logging out...'
+                    : 'Logout'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   )
 }
