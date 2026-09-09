@@ -898,3 +898,30 @@
     padding: 18px 0;
   }
 }
+.home-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logout-button {
+  border: 1px solid #234b3a;
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  color: #234b3a;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #eef4f0;
+}
+
+.logout-error {
+  margin: 12px 32px 0;
+  color: #a33a32;
+  font-size: 13px;
+  font-weight: 600;
+}
