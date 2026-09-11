@@ -52,6 +52,17 @@ async function readErrorResponse(response) {
   }
 }
 
+function formatDateTime(value) {
+  if (!value) {
+    return ''
+  }
+
+  return new Date(value).toLocaleString('en-AU', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
 function PostDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -1085,6 +1096,13 @@ function PostDetailPage() {
                 <strong>
                   {post.AuthorUsername}
                 </strong>
+
+                {' • '}
+
+                {formatDateTime(
+                  post.CreatedAt ??
+                  post.created_at
+                )}
               </p>
             </header>
 
@@ -1255,9 +1273,17 @@ function PostDetailPage() {
                         </div>
 
                         <div className="comment-copy">
-                          <strong>
-                            {comment.username}
-                          </strong>
+                          <div className="comment-meta">
+                            <strong>
+                              {comment.username}
+                            </strong>
+
+                            <span className="comment-date">
+                              {formatDateTime(
+                                comment.created_at
+                              )}
+                            </span>
+                          </div>
 
                           <p>
                             {comment.text}
@@ -1647,7 +1673,6 @@ function PostDetailPage() {
           </div>
         </div>
       )}
-
     </main>
   )
 }
