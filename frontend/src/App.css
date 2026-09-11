@@ -1573,7 +1573,6 @@
   transform: translateY(-1px);
 }
 
-/* Confirmation modals: add to the end of App.css */
 
 .confirm-modal {
   width: min(100%, 460px);

@@ -228,7 +228,7 @@ function HomePage() {
             data.Error ||
             message
         } catch {
-          // Keep generic message.
+         
         }
 
         setLogoutError(message)
