@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16
     container_name: weblog-db
+    restart: unless-stopped
 
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -9,7 +10,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
 
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -31,6 +32,7 @@ services:
       dockerfile: Dockerfile
 
     container_name: goraz-backend
+    restart: unless-stopped
 
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -38,13 +40,16 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PORT: 5432
       POSTGRES_HOST: postgres
+
       SESSION_SECRET: ${SESSION_SECRET}
       SESSION_SECURE: ${SESSION_SECURE:-false}
+
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
+
       PORT: 8080
 
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
     volumes:
       - uploads_data:/app/uploads
@@ -59,6 +64,7 @@ services:
       dockerfile: Dockerfile
 
     container_name: goraz-frontend
+    restart: unless-stopped
 
     ports:
       - "5173:80"
