@@ -52,6 +52,17 @@ async function readErrorResponse(response) {
   }
 }
 
+function formatDateTime(value) {
+  if (!value) {
+    return ''
+  }
+
+  return new Date(value).toLocaleString('en-AU', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
 function PostDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -126,7 +137,7 @@ function PostDetailPage() {
       setCommentsLoadError('')
 
       const response = await fetch(
-        `http://localhost:8080/posts/${id}/comments`,
+        `/api/posts/${id}/comments`,
         {
           credentials: 'include',
         }
@@ -208,7 +219,7 @@ function PostDetailPage() {
       setShareError('')
 
       const response = await fetch(
-        `http://localhost:8080/posts/${id}/shares`,
+        `/api/posts/${id}/shares`,
         {
           credentials: 'include',
         }
@@ -293,7 +304,7 @@ function PostDetailPage() {
         setError('')
 
         const response = await fetch(
-          `http://localhost:8080/posts/${id}`,
+          `/api/posts/${id}`,
           {
             credentials: 'include',
           }
@@ -365,7 +376,7 @@ function PostDetailPage() {
     async function loadCurrentUser() {
       try {
         const response = await fetch(
-          'http://localhost:8080/auth/me',
+          '/api/auth/me',
           {
             credentials: 'include',
           }
@@ -417,7 +428,7 @@ function PostDetailPage() {
       setLogoutError('')
 
       const response = await fetch(
-        'http://localhost:8080/auth/logout',
+        '/api/auth/logout',
         {
           method: 'POST',
           credentials: 'include',
@@ -553,7 +564,7 @@ function PostDetailPage() {
       setIsCommentSubmitting(true)
 
       const response = await fetch(
-        `http://localhost:8080/posts/${id}/comments`,
+        `/api/posts/${id}/comments`,
         {
           method: 'POST',
           credentials: 'include',
@@ -677,7 +688,7 @@ function PostDetailPage() {
       setIsSharing(true)
 
       const response = await fetch(
-        `http://localhost:8080/posts/${id}/shares`,
+        `/api/posts/${id}/shares`,
         {
           method: 'POST',
           credentials: 'include',
@@ -812,7 +823,7 @@ function PostDetailPage() {
       )
 
       const response = await fetch(
-        `http://localhost:8080/posts/${id}/shares/${numericUserID}`,
+        `/api/posts/${id}/shares/${numericUserID}`,
         {
           method: 'DELETE',
           credentials: 'include',
@@ -908,7 +919,7 @@ function PostDetailPage() {
       setIsDeleting(true)
 
       const response = await fetch(
-        `http://localhost:8080/posts/${id}`,
+        `/api/posts/${id}`,
         {
           method: 'DELETE',
           credentials: 'include',
@@ -1085,6 +1096,13 @@ function PostDetailPage() {
                 <strong>
                   {post.AuthorUsername}
                 </strong>
+
+                {' • '}
+
+                {formatDateTime(
+                  post.CreatedAt ??
+                  post.created_at
+                )}
               </p>
             </header>
 
@@ -1092,7 +1110,7 @@ function PostDetailPage() {
               <div className="detail-image-wrap">
                 <img
                   className="detail-image"
-                  src={`http://localhost:8080${post.ImagePath}`}
+                  src={post.ImagePath}
                   alt={post.Title}
                 />
               </div>
@@ -1255,9 +1273,17 @@ function PostDetailPage() {
                         </div>
 
                         <div className="comment-copy">
-                          <strong>
-                            {comment.username}
-                          </strong>
+                          <div className="comment-meta">
+                            <strong>
+                              {comment.username}
+                            </strong>
+
+                            <span className="comment-date">
+                              {formatDateTime(
+                                comment.created_at
+                              )}
+                            </span>
+                          </div>
 
                           <p>
                             {comment.text}
@@ -1647,7 +1673,6 @@ function PostDetailPage() {
           </div>
         </div>
       )}
-
     </main>
   )
 }

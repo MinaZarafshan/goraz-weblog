@@ -21,18 +21,22 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("error loading .env file")
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
 	}
 
 	user := os.Getenv("POSTGRES_USER")
 	password := os.Getenv("POSTGRES_PASSWORD")
 	dbName := os.Getenv("POSTGRES_DB")
 	port := os.Getenv("POSTGRES_PORT")
+	host := os.Getenv("POSTGRES_HOST")
+	if host == "" {
+		host = "localhost"
+	}
 
 	connStr := fmt.Sprintf(
-		"host=localhost port=%s user=%s password=%s dbname=%s sslmode=disable",
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		host,
 		port,
 		user,
 		password,
@@ -46,17 +50,22 @@ func main() {
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Database ping failed: %v", err)
 	}
-	sessionSecret := os.Getenv("SESSION_SECRET")
-	if sessionSecret == "" {
-		log.Fatal("SESSION_SECRET is not set")
-	}
+	
+sessionSecret := os.Getenv("SESSION_SECRET")
+if sessionSecret == "" {
+	log.Fatal("SESSION_SECRET is not set")
+}
+
+	sessionSecure := os.Getenv("SESSION_SECURE") == "true"
+
 	store := sessions.NewCookieStore([]byte(sessionSecret))
+
 	store.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   86400,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   false,
+		Secure:   sessionSecure,
 	}
 	userRepo := repo.NewUserRepository(db)
 	userService := service.NewAuthService(userRepo)
@@ -70,11 +79,16 @@ func main() {
 	commentRepo := repo.NewCommentRepo(db)
 	commentService := service.NewCommentService(commentRepo, postService)
 	commentHandler := handler.NewCommentHandler(commentService)
+	frontendURL := os.Getenv("FRONTEND_URL")
+
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
 	e := echo.New()
 
 	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
 		AllowOrigins: []string{
-			"http://localhost:5173",
+			frontendURL,
 		},
 
 		AllowMethods: []string{
@@ -109,7 +123,12 @@ func main() {
 	e.DELETE("/posts/:id/shares/:userID", postShareHandler.UnsharePost, middleware.AuthMiddleware(store))
 	e.POST("/posts/:id/comments", commentHandler.CreateComment, middleware.AuthMiddleware(store))
 	e.GET("/posts/:id/comments", commentHandler.GetCommentsByPostID, middleware.AuthMiddleware(store))
-	if err := e.Start(":8080"); err != nil {
+	port = os.Getenv("PORT")
+
+	if port == "" {
+		port = "8080"
+	}
+	if err := e.Start(":" + port); err != nil {
 		e.Logger.Error("server stopped", "error", err)
 	}
 }

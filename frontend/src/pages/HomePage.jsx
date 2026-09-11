@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+function formatDateTime(value) {
+  if (!value) {
+    return ''
+  }
+
+  return new Date(value).toLocaleString('en-AU', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
 function HomePage() {
   const navigate = useNavigate()
 
@@ -18,9 +29,12 @@ function HomePage() {
   const [imageError, setImageError] = useState('')
   const [createError, setCreateError] = useState('')
   const [logoutError, setLogoutError] = useState('')
+
   const [isLogoutModalOpen, setIsLogoutModalOpen] =
     useState(false)
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const [isLoggingOut, setIsLoggingOut] =
+    useState(false)
 
   const [search, setSearch] = useState('')
   const [privacyFilter, setPrivacyFilter] = useState('')
@@ -48,19 +62,28 @@ function HomePage() {
       params.set('limit', limitValue)
 
       if (searchValue.trim() !== '') {
-        params.set('search', searchValue.trim())
+        params.set(
+          'search',
+          searchValue.trim()
+        )
       }
 
       if (privacyValue !== '') {
-        params.set('privacy', privacyValue)
+        params.set(
+          'privacy',
+          privacyValue
+        )
       }
 
       if (sortValue !== '') {
-        params.set('sort', sortValue)
+        params.set(
+          'sort',
+          sortValue
+        )
       }
 
       const response = await fetch(
-        `http://localhost:8080/posts?${params.toString()}`,
+        `/api/posts?${params.toString()}`,
         {
           credentials: 'include',
         }
@@ -76,7 +99,12 @@ function HomePage() {
 
       const data = await response.json()
 
-      setPosts(data.posts)
+      setPosts(
+        Array.isArray(data.posts)
+          ? data.posts
+          : []
+      )
+
       setPage(data.page)
       setTotalPages(data.total_pages)
       setTotalPosts(data.total)
@@ -123,7 +151,8 @@ function HomePage() {
   }
 
   function handleLimitChange(event) {
-    const newLimit = Number(event.target.value)
+    const newLimit =
+      Number(event.target.value)
 
     setLimit(newLimit)
 
@@ -161,10 +190,9 @@ function HomePage() {
   }
 
   function handleImageChange(event) {
-    const file = event.target.files[0]
+    const file =
+      event.target.files[0]
 
-    // The frontend only stores the selected file.
-    // The backend is the source of truth for image validation.
     setImageError('')
     setCreateError('')
     setDraftImage(file || null)
@@ -180,7 +208,7 @@ function HomePage() {
       setLogoutError('')
 
       const response = await fetch(
-        'http://localhost:8080/auth/logout',
+        '/api/auth/logout',
         {
           method: 'POST',
           credentials: 'include',
@@ -188,17 +216,19 @@ function HomePage() {
       )
 
       if (!response.ok) {
-        let message = 'Failed to log out.'
+        let message =
+          'Failed to log out.'
 
         try {
-          const data = await response.json()
+          const data =
+            await response.json()
 
           message =
             data.error ||
             data.Error ||
             message
         } catch {
-          // Keep the generic message if the response is not JSON.
+          // Keep generic message.
         }
 
         setLogoutError(message)
@@ -208,9 +238,12 @@ function HomePage() {
       setUser(null)
       setIsLogoutModalOpen(false)
 
-      navigate('/login', {
-        replace: true,
-      })
+      navigate(
+        '/login',
+        {
+          replace: true,
+        }
+      )
     } catch (error) {
       console.error(
         'Could not log out:',
@@ -248,13 +281,23 @@ function HomePage() {
 
     let hasFrontendError = false
 
-    if (draftTitle.trim() === '') {
-      setTitleError('Title is required.')
+    if (
+      draftTitle.trim() === ''
+    ) {
+      setTitleError(
+        'Title is required.'
+      )
+
       hasFrontendError = true
     }
 
-    if (draftContent.trim() === '') {
-      setContentError('Content is required.')
+    if (
+      draftContent.trim() === ''
+    ) {
+      setContentError(
+        'Content is required.'
+      )
+
       hasFrontendError = true
     }
 
@@ -262,7 +305,10 @@ function HomePage() {
       draftPrivacy !== 'public' &&
       draftPrivacy !== 'private'
     ) {
-      setPrivacyError('Privacy must be public or private.')
+      setPrivacyError(
+        'Privacy must be public or private.'
+      )
+
       hasFrontendError = true
     }
 
@@ -270,19 +316,34 @@ function HomePage() {
       return
     }
 
-    const formData = new FormData()
+    const formData =
+      new FormData()
 
-    formData.append('title', draftTitle)
-    formData.append('content', draftContent)
-    formData.append('privacy', draftPrivacy)
+    formData.append(
+      'title',
+      draftTitle
+    )
+
+    formData.append(
+      'content',
+      draftContent
+    )
+
+    formData.append(
+      'privacy',
+      draftPrivacy
+    )
 
     if (draftImage) {
-      formData.append('image', draftImage)
+      formData.append(
+        'image',
+        draftImage
+      )
     }
 
     try {
       const response = await fetch(
-        'http://localhost:8080/posts',
+        '/api/posts',
         {
           method: 'POST',
           credentials: 'include',
@@ -294,7 +355,8 @@ function HomePage() {
         let data = {}
 
         try {
-          data = await response.json()
+          data =
+            await response.json()
         } catch {
           setCreateError(
             'The server returned an invalid response.'
@@ -315,62 +377,97 @@ function HomePage() {
         console.error(
           'CREATE POST ERROR:',
           {
-            status: response.status,
+            status:
+              response.status,
             code,
             backendMessage,
             data,
           }
         )
 
-        if (code === 'EMPTY_TITLE') {
-          setTitleError('Title is required.')
-        } else if (code === 'EMPTY_CONTENT') {
-          setContentError('Content is required.')
-        } else if (code === 'INVALID_PRIVACY') {
+        if (
+          code === 'EMPTY_TITLE'
+        ) {
+          setTitleError(
+            'Title is required.'
+          )
+        } else if (
+          code === 'EMPTY_CONTENT'
+        ) {
+          setContentError(
+            'Content is required.'
+          )
+        } else if (
+          code === 'INVALID_PRIVACY'
+        ) {
           setPrivacyError(
             'Privacy must be public or private.'
           )
-        } else if (code === 'INVALID_IMAGE_UPLOAD') {
+        } else if (
+          code === 'INVALID_IMAGE_UPLOAD'
+        ) {
           setImageError(
             'The image upload is invalid.'
           )
-        } else if (code === 'IMAGE_TOO_LARGE') {
+        } else if (
+          code === 'IMAGE_TOO_LARGE'
+        ) {
           setImageError(
             'Image must be 5 MB or smaller.'
           )
-        } else if (code === 'EMPTY_IMAGE') {
+        } else if (
+          code === 'EMPTY_IMAGE'
+        ) {
           setImageError(
             'The selected image is empty.'
           )
-        } else if (code === 'INVALID_IMAGE_TYPE') {
+        } else if (
+          code === 'INVALID_IMAGE_TYPE'
+        ) {
           setImageError(
             'Only valid JPEG, PNG, and WEBP images are allowed.'
           )
-        } else if (code === 'IMAGE_OPEN_ERROR') {
+        } else if (
+          code === 'IMAGE_OPEN_ERROR'
+        ) {
           setImageError(
             'The server could not open the uploaded image.'
           )
-        } else if (code === 'IMAGE_READ_ERROR') {
+        } else if (
+          code === 'IMAGE_READ_ERROR'
+        ) {
           setImageError(
             'The server could not read the uploaded image.'
           )
-        } else if (code === 'IMAGE_SEEK_ERROR') {
+        } else if (
+          code === 'IMAGE_SEEK_ERROR'
+        ) {
           setImageError(
             'The server could not process the uploaded image.'
           )
-        } else if (code === 'IMAGE_SAVE_ERROR') {
+        } else if (
+          code === 'IMAGE_SAVE_ERROR'
+        ) {
           setImageError(
             'The server could not save the uploaded image.'
           )
-        } else if (code === 'UNAUTHORIZED') {
+        } else if (
+          code === 'UNAUTHORIZED'
+        ) {
           setCreateError(
             'Your session has expired. Please log in again.'
           )
-        } else if (code === 'INTERNAL_ERROR') {
+        } else if (
+          code === 'INTERNAL_ERROR'
+        ) {
           setCreateError(
             'The server could not create the post. Please try again.'
           )
-        } else if (code.startsWith('IMAGE_')) {
+        } else if (
+          code.startsWith(
+            'IMAGE_'
+          )
+        ) {
           setImageError(
             backendMessage ||
               'The image could not be processed.'
@@ -436,12 +533,14 @@ function HomePage() {
   useEffect(() => {
     async function loadUser() {
       try {
-        const response = await fetch(
-          'http://localhost:8080/auth/me',
-          {
-            credentials: 'include',
-          }
-        )
+        const response =
+          await fetch(
+            '/api/auth/me',
+            {
+              credentials:
+                'include',
+            }
+          )
 
         if (!response.ok) {
           console.error(
@@ -451,7 +550,8 @@ function HomePage() {
           return
         }
 
-        const data = await response.json()
+        const data =
+          await response.json()
 
         setUser(data)
       } catch (error) {
@@ -468,7 +568,6 @@ function HomePage() {
   return (
     <main className="home-page">
       <div className="home-shell">
-
         <header className="home-navbar">
           <Link
             to="/home"
@@ -492,7 +591,10 @@ function HomePage() {
                 setPrivacyError('')
                 setImageError('')
                 setCreateError('')
-                setIsCreateModalOpen(true)
+
+                setIsCreateModalOpen(
+                  true
+                )
               }}
             >
               Create Post
@@ -508,13 +610,15 @@ function HomePage() {
         </header>
 
         <div className="home-content">
-
           <section className="home-intro">
-            <h1>Your Feed</h1>
+            <h1>
+              Your Feed
+            </h1>
 
             {user && (
               <p>
                 Welcome,{' '}
+
                 <strong>
                   {user.username}
                 </strong>
@@ -523,7 +627,6 @@ function HomePage() {
           </section>
 
           <section className="feed-controls">
-
             <div className="search-row">
               <input
                 className="search-input"
@@ -546,7 +649,6 @@ function HomePage() {
             </div>
 
             <div className="filter-row">
-
               <div className="filter-group">
                 <span className="filter-label">
                   Privacy
@@ -559,7 +661,9 @@ function HomePage() {
                       : 'filter-button'
                   }
                   onClick={() =>
-                    handlePrivacyFilter('')
+                    handlePrivacyFilter(
+                      ''
+                    )
                   }
                 >
                   All
@@ -608,7 +712,9 @@ function HomePage() {
                       : 'filter-button'
                   }
                   onClick={() =>
-                    handleSort('newest')
+                    handleSort(
+                      'newest'
+                    )
                   }
                 >
                   Newest
@@ -621,7 +727,9 @@ function HomePage() {
                       : 'filter-button'
                   }
                   onClick={() =>
-                    handleSort('oldest')
+                    handleSort(
+                      'oldest'
+                    )
                   }
                 >
                   Oldest
@@ -631,7 +739,9 @@ function HomePage() {
               <select
                 className="limit-select"
                 value={limit}
-                onChange={handleLimitChange}
+                onChange={
+                  handleLimitChange
+                }
               >
                 <option value="3">
                   3 per page
@@ -645,14 +755,14 @@ function HomePage() {
                   10 per page
                 </option>
               </select>
-
             </div>
           </section>
 
           <section className="posts-section">
-
             <div className="posts-heading">
-              <h2>Posts</h2>
+              <h2>
+                Posts
+              </h2>
 
               <span>
                 {totalPosts} posts
@@ -666,12 +776,21 @@ function HomePage() {
                     className="post-row"
                     key={post.ID}
                   >
-                    <Link
-                      className="post-link"
-                      to={`/weblog/${post.ID}`}
-                    >
-                      {post.Title}
-                    </Link>
+                    <div className="post-info">
+                      <Link
+                        className="post-link"
+                        to={`/weblog/${post.ID}`}
+                      >
+                        {post.Title}
+                      </Link>
+
+                      <span className="post-date">
+                        {formatDateTime(
+                          post.CreatedAt ??
+                          post.created_at
+                        )}
+                      </span>
+                    </div>
 
                     <span
                       className={`privacy-badge ${post.Privacy}`}
@@ -688,12 +807,13 @@ function HomePage() {
                 No posts found.
               </p>
             )}
-
           </section>
 
           <div className="pagination">
             <button
-              onClick={handlePreviousPage}
+              onClick={
+                handlePreviousPage
+              }
               disabled={page <= 1}
             >
               Previous
@@ -701,30 +821,38 @@ function HomePage() {
 
             <span>
               Page {page} of{' '}
-              {Math.max(totalPages, 1)}
+              {Math.max(
+                totalPages,
+                1
+              )}
             </span>
 
             <button
-              onClick={handleNextPage}
-              disabled={page >= totalPages}
+              onClick={
+                handleNextPage
+              }
+              disabled={
+                page >= totalPages
+              }
             >
               Next
             </button>
           </div>
-
         </div>
       </div>
 
       {isCreateModalOpen && (
         <div className="modal-overlay">
-
           <div className="create-modal">
-
             <div className="modal-header">
-
               <div>
-                <p>NEW POST</p>
-                <h2>Create a post</h2>
+                <p>
+                  NEW POST
+                </p>
+
+                <h2>
+                  Create a post
+                </h2>
               </div>
 
               <button
@@ -735,16 +863,17 @@ function HomePage() {
                   setPrivacyError('')
                   setImageError('')
                   setCreateError('')
-                  setIsCreateModalOpen(false)
+
+                  setIsCreateModalOpen(
+                    false
+                  )
                 }}
               >
                 ×
               </button>
-
             </div>
 
             <div className="modal-form">
-
               <input
                 type="text"
                 placeholder="Title"
@@ -753,6 +882,7 @@ function HomePage() {
                   setDraftTitle(
                     event.target.value
                   )
+
                   setTitleError('')
                   setCreateError('')
                 }}
@@ -771,6 +901,7 @@ function HomePage() {
                   setDraftContent(
                     event.target.value
                   )
+
                   setContentError('')
                   setCreateError('')
                 }}
@@ -788,6 +919,7 @@ function HomePage() {
                   setDraftPrivacy(
                     event.target.value
                   )
+
                   setPrivacyError('')
                   setCreateError('')
                 }}
@@ -810,7 +942,9 @@ function HomePage() {
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                onChange={handleImageChange}
+                onChange={
+                  handleImageChange
+                }
               />
 
               {imageError && (
@@ -827,14 +961,14 @@ function HomePage() {
 
               <button
                 className="publish-button"
-                onClick={handleAddPost}
+                onClick={
+                  handleAddPost
+                }
               >
                 Publish
               </button>
-
             </div>
           </div>
-
         </div>
       )}
 
@@ -851,14 +985,23 @@ function HomePage() {
           >
             <div className="modal-header">
               <div>
-                <p>ACCOUNT</p>
-                <h2>Log out?</h2>
+                <p>
+                  ACCOUNT
+                </p>
+
+                <h2>
+                  Log out?
+                </h2>
               </div>
 
               <button
                 className="modal-close"
-                onClick={closeLogoutModal}
-                disabled={isLoggingOut}
+                onClick={
+                  closeLogoutModal
+                }
+                disabled={
+                  isLoggingOut
+                }
                 aria-label="Close logout confirmation"
               >
                 ×
@@ -879,16 +1022,24 @@ function HomePage() {
               <div className="confirm-modal-actions">
                 <button
                   className="confirm-cancel-button"
-                  onClick={closeLogoutModal}
-                  disabled={isLoggingOut}
+                  onClick={
+                    closeLogoutModal
+                  }
+                  disabled={
+                    isLoggingOut
+                  }
                 >
                   Cancel
                 </button>
 
                 <button
                   className="confirm-primary-button"
-                  onClick={handleLogout}
-                  disabled={isLoggingOut}
+                  onClick={
+                    handleLogout
+                  }
+                  disabled={
+                    isLoggingOut
+                  }
                 >
                   {isLoggingOut
                     ? 'Logging out...'
@@ -899,7 +1050,6 @@ function HomePage() {
           </div>
         </div>
       )}
-
     </main>
   )
 }

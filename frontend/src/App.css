@@ -1643,3 +1643,35 @@
   line-height: 1.65;
 }
 
+.comment-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.comment-date {
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.comment-copy {
+  min-width: 0;
+}
+
+.comment-copy p {
+  margin-top: 0.35rem;
+}
+.post-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.post-date {
+  font-size: 0.8rem;
+  font-weight: 400;
+  opacity: 0.6;
+}

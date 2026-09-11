@@ -1,0 +1,13 @@
+.git
+.gitignore
+
+frontend/
+
+uploads/
+
+.env
+.env.*
+
+*.log
+
+README.md
