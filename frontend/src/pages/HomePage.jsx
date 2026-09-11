@@ -83,7 +83,7 @@ function HomePage() {
       }
 
       const response = await fetch(
-        `http://localhost:8080/posts?${params.toString()}`,
+        `/api/posts?${params.toString()}`,
         {
           credentials: 'include',
         }
@@ -208,7 +208,7 @@ function HomePage() {
       setLogoutError('')
 
       const response = await fetch(
-        'http://localhost:8080/auth/logout',
+        '/api/auth/logout',
         {
           method: 'POST',
           credentials: 'include',
@@ -343,7 +343,7 @@ function HomePage() {
 
     try {
       const response = await fetch(
-        'http://localhost:8080/posts',
+        '/api/posts',
         {
           method: 'POST',
           credentials: 'include',
@@ -535,7 +535,7 @@ function HomePage() {
       try {
         const response =
           await fetch(
-            'http://localhost:8080/auth/me',
+            '/api/auth/me',
             {
               credentials:
                 'include',

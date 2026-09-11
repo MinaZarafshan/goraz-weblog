@@ -74,11 +74,16 @@ func main() {
 	commentRepo := repo.NewCommentRepo(db)
 	commentService := service.NewCommentService(commentRepo, postService)
 	commentHandler := handler.NewCommentHandler(commentService)
+	frontendURL := os.Getenv("FRONTEND_URL")
+
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
 	e := echo.New()
 
 	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
 		AllowOrigins: []string{
-			"http://localhost:5173",
+			frontendURL,
 		},
 
 		AllowMethods: []string{

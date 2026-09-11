@@ -39,6 +39,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_HOST: postgres
       SESSION_SECRET: ${SESSION_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
 
     ports:
       - "8080:8080"
