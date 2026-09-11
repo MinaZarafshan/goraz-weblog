@@ -50,17 +50,22 @@ func main() {
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Database ping failed: %v", err)
 	}
-	sessionSecret := os.Getenv("SESSION_SECRET")
-	if sessionSecret == "" {
-		log.Fatal("SESSION_SECRET is not set")
-	}
+	
+sessionSecret := os.Getenv("SESSION_SECRET")
+if sessionSecret == "" {
+	log.Fatal("SESSION_SECRET is not set")
+}
+
+	sessionSecure := os.Getenv("SESSION_SECURE") == "true"
+
 	store := sessions.NewCookieStore([]byte(sessionSecret))
+
 	store.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   86400,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   false,
+		Secure:   sessionSecure,
 	}
 	userRepo := repo.NewUserRepository(db)
 	userService := service.NewAuthService(userRepo)
@@ -118,7 +123,12 @@ func main() {
 	e.DELETE("/posts/:id/shares/:userID", postShareHandler.UnsharePost, middleware.AuthMiddleware(store))
 	e.POST("/posts/:id/comments", commentHandler.CreateComment, middleware.AuthMiddleware(store))
 	e.GET("/posts/:id/comments", commentHandler.GetCommentsByPostID, middleware.AuthMiddleware(store))
-	if err := e.Start(":8080"); err != nil {
+	port = os.Getenv("PORT")
+
+	if port == "" {
+		port = "8080"
+	}
+	if err := e.Start(":" + port); err != nil {
 		e.Logger.Error("server stopped", "error", err)
 	}
 }

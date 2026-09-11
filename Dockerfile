@@ -1,4 +1,4 @@
-FROM golang:1.26
+FROM golang:1.26 AS build
 
 WORKDIR /app
 
@@ -8,7 +8,20 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o app .
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -trimpath \
+    -ldflags="-s -w" \
+    -o app .
+
+FROM alpine:3.22
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates
+
+COPY --from=build /app/app ./app
+
+RUN mkdir -p uploads
 
 EXPOSE 8080
 
