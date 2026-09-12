@@ -4,7 +4,7 @@ GoRaz Weblog is a full-stack weblog application built with **Go, Echo, PostgreSQ
 
 Users can create accounts, publish public or private posts, share private posts with selected users, comment on posts, upload images, and browse posts using search, filtering, sorting, and pagination.
 
-**Live site:** https://goraz-weblog.onrender.com
+**Live site:** https://goraz-weblog.style.dev
 
 ---
 
@@ -43,7 +43,8 @@ Users can create accounts, publish public or private posts, share private posts 
 | Password hashing | bcrypt |
 | Reverse proxy | Nginx |
 | Local development | Docker, Docker Compose |
-| Deployment | Render |
+| Deployment | Freestyle VM |
+| HTTPS | Freestyle TLS |
 
 ---
 
@@ -154,7 +155,7 @@ On the first database startup, `database/schema.sql` creates the required tables
 docker compose down
 ```
 
-PostgreSQL data and uploaded files are stored in Docker volumes, so they remain available after a normal shutdown.
+PostgreSQL data and uploaded files are stored in Docker volumes, so they remain available after a normal shutdown or container recreation.
 
 To remove the containers and their volumes:
 
@@ -219,6 +220,8 @@ docker compose down -v
 - SQL queries use parameterized values
 - Uploaded images are validated using their detected MIME type
 - Image uploads are limited to 5 MB
+- PostgreSQL and the backend are not exposed directly to the public Internet
+- Production secrets are stored in environment variables and are not committed to the repository
 
 ---
 
@@ -235,50 +238,76 @@ post_shares
 
 Foreign keys are used to maintain relationships between users, posts, comments, and shared posts.
 
+PostgreSQL data is stored in a Docker volume so it persists across container recreation.
+
 ---
 
 ## Deployment
 
-The production version is deployed on Render.
+The production application is deployed on a Freestyle Ubuntu VM using Docker Compose.
 
 ```text
-Render Static Site
-        |
-        | /api/*
-        | /uploads/*
-        v
-Render Web Service
-        |
-        v
-Render PostgreSQL
+Internet
+   |
+   | HTTPS
+   v
+Freestyle TLS
+goraz-weblog.style.dev
+   |
+   v
+Freestyle VM
+   |
+   v
+Frontend Container
+React + Nginx
+   |
+   | /api/*
+   v
+Backend Container
+Go + Echo
+   |
+   v
+PostgreSQL Container
 ```
 
-The frontend is deployed as a Render Static Site.
+The Freestyle TLS layer provides the public HTTPS endpoint and forwards requests to the frontend container running on the VM.
 
-The Go backend is deployed as a Render Web Service using the project's Dockerfile.
+Nginx serves the React application and proxies API and upload requests to the Go backend.
 
-PostgreSQL is hosted using Render PostgreSQL.
+The backend and PostgreSQL services are bound locally and are not directly exposed to the public Internet.
 
-Production runs over HTTPS with:
+Production uses:
 
 ```env
 SESSION_SECURE=true
+FRONTEND_URL=https://goraz-weblog.style.dev
 ```
+
+Production secrets and database credentials are stored only in the server environment and are not committed to GitHub.
 
 ---
 
-## Upload Storage
+## Persistent Storage
 
-Uploaded images are currently stored on the backend filesystem.
+The production Docker setup uses two named volumes:
 
-This works locally because Docker uses a persistent volume.
+```text
+postgres_data
+uploads_data
+```
 
-The free Render Web Service uses an ephemeral filesystem, so uploaded images may be removed after a restart or redeployment.
+`postgres_data` stores PostgreSQL data, including users, posts, comments, and sharing records.
 
-Database records are stored separately in PostgreSQL and are not dependent on the upload filesystem.
+`uploads_data` stores uploaded images.
+
+Because these files are stored in Docker volumes on the Freestyle VM, they remain available when application containers are rebuilt or recreated.
+
+Persistence has also been verified after pausing and restarting the VM.
+
+> Do not use `docker compose down -v` unless you intentionally want to remove the application volumes and their stored data.
 
 ---
 
 ## Live Site
 
-https://goraz-weblog.onrender.com
+https://goraz-weblog.style.dev
